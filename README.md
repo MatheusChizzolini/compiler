@@ -1,73 +1,85 @@
-# React + TypeScript + Vite
+# Especificação Gramatical da Linguagem
+**Disciplina:** Compiladores
+**Autores:** Evandro Taroco, João Eduardo e Matheus Chizzolini
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este documento apresenta a gramática da linguagem em notação EBNF, detalhando a estrutura de programas, expressões e controle de fluxo.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Estrutura Principal
+Um programa consiste em uma sequência de linhas.
 
-## React Compiler
-
-The React Compiler is currently not compatible with SWC. See [this issue](https://github.com/vitejs/vite-plugin-react/issues/428) for tracking the progress.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```ebnf
+programa = { linha }
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Elementos Básicos (Léxico)
+Definições de identificadores, números e tipos primitivos.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+* **Dígitos e Letras:**
+    ```ebnf
+    digito = "0" | ... | "9"
+    letra = "a" | ... | "z" | "A" | ... | "Z"
+    ```
+* **Identificadores:**
+    ```ebnf
+    identificador = letra { digito | letra | "_" }
+    ```
+* **Valores e Tipos:**
+    ```ebnf
+    numero = digito { digito } [ "." digito { digito } ]
+    caractere = "'" ( letra | digito ) "'"
+    booleano = "true" | "false"
+    valor = numero | caractere | booleano
+    ```
+
+---
+
+## Expressões e Operadores
+A gramática define a precedência de operadores partindo da menor para a maior prioridade.
+
+### Operadores
+| Categoria | Operadores |
+| :--- | :--- |
+| **Multiplicativos** | `*`, `/`, `%` |
+| **Aditivos** | `+`, `-` |
+| **Relacionais** | `==`, `!=`, `>`, `>=`, `<`, `<=` |
+| **Lógicos** | `&`, `|` |
+
+### Hierarquia de Precedência
+1. **Expressão Lógica:** `expressao_relacional { operador_logico expressao_relacional }`
+2. **Expressão Relacional:** `expressao_aditiva { operador_relacional expressao_aditiva }`
+3. **Expressão Aditiva:** `termo { operador_aditivo termo }`
+4. **Termo:** `unario { operador_multiplicativo unario }`
+5. **Unário:** `[ "!" | "-" ] fator`
+6. **Fator:** `identificador | valor | "(" expressao ")"`
+
+---
+
+## Declarações e Atribuições
+Definições de como variáveis são instanciadas e modificadas.
+
+* **Tipos:** `int`, `decimal`, `char`, `bool`
+* **Declaração:** `tipo identificador [ "=" expressao ] ;`
+* **Atribuição:** `identificador "=" expressao ;`
+
+---
+
+## Fluxo de Controle
+Estruturas de decisão e repetição.
+
+* **Linha e Bloco:**
+    ```ebnf
+    linha = declaracao | atribuicao | condicional | repeticao
+    bloco = "{" { linha } "}"
+    ```
+* **Condicional (if):**
+    ```ebnf
+    condicional = "if" "(" expressao ")" bloco [ "else" bloco ]
+    ```
+* **Repetição (while):**
+    ```ebnf
+    repeticao = "while" "(" expressao ")" bloco
+    ```
