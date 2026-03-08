@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import CodeEditor from "./components/code-editor";
+import SideBar from "./components/side-bar";
 import type { LexicalError } from "./lexer/types";
 import { Scanner } from "./lexer/scanner";
 
@@ -27,13 +28,18 @@ const App = () => {
   }, [sourceCode]);
 
   return (
-    <>
-      <CodeEditor
-        value={sourceCode}
-        onChange={handleCodeChange}
-        errors={errors}
-      />
-    </>
+    <div className="flex h-screen">
+      <div className="w-[25%]">
+        <SideBar onLoadFile={setSourceCode} sourceCode={sourceCode} />
+      </div>
+      <div className="flex-1">
+        <CodeEditor
+          value={sourceCode}
+          onChange={handleCodeChange}
+          errors={errors}
+        />
+      </div>
+    </div>
   );
 };
 

@@ -1,5 +1,5 @@
 # Especificação Gramatical da Linguagem
-**Disciplina:** Compiladores
+**Disciplina:** Compiladores  
 **Autores:** Evandro Taroco, João Eduardo e Matheus Chizzolini
 
 Este documento apresenta a gramática da linguagem em notação EBNF, detalhando a estrutura de programas, expressões e controle de fluxo.

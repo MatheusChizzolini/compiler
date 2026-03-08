@@ -66,6 +66,7 @@ const CodeEditor = ({ value, onChange, errors = [] }: CodeEditorProps) => {
         value={value}
         onChange={(value) => onChange(value || "")}
         onMount={handleEditorMount}
+        options={{ minimap: { enabled: false } }}
       />
     </div>
   );
