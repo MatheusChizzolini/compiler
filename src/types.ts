@@ -20,6 +20,7 @@ export enum TokenType {
   FECHA_CHAVES,
   PONTO_VIRGULA,
   ATRIBUICAO,
+  EOF,
 }
 
 export interface Token {
@@ -30,6 +31,13 @@ export interface Token {
 }
 
 export interface LexicalError {
+  message: string;
+  line: number;
+  column: number;
+  length: number;
+}
+
+export interface SyntaxError {
   message: string;
   line: number;
   column: number;

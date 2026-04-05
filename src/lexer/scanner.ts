@@ -1,4 +1,4 @@
-import { TokenType, type Token, type LexicalError } from "./types";
+import { TokenType, type Token, type LexicalError } from "../types";
 
 export class Scanner {
   private source: string;
@@ -20,6 +20,13 @@ export class Scanner {
       this.start = this.current;
       this.scanToken();
     }
+
+    this.tokens.push({
+      lexeme: "",
+      type: TokenType.EOF,
+      column: this.column,
+      line: this.line,
+    });
 
     this.printReport();
 
@@ -168,7 +175,11 @@ export class Scanner {
   }
 
   private isAlpha(char: string) {
-    return /[a-zA-Z_]/.test(char);
+    return /[a-zA-Z]/.test(char);
+  }
+
+  private isAlphaNumeric(char: string) {
+    return /[a-zA-Z0-9_]/.test(char);
   }
 
   private number() {
@@ -193,7 +204,7 @@ export class Scanner {
   }
 
   private identifier() {
-    while (/[a-zA-Z0-9_]/.test(this.peek())) {
+    while (this.isAlphaNumeric(this.peek())) {
       this.advance();
     }
 

@@ -1,32 +1,51 @@
 import Editor, { useMonaco, type OnMount } from "@monaco-editor/react";
-import type { LexicalError } from "../lexer/types";
+import type { LexicalError, SyntaxError } from "../types";
 import { useEffect } from "react";
 
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
-  errors?: LexicalError[];
+  lexicalErrors?: LexicalError[];
+  syntaxErrors?: SyntaxError[];
 }
 
-const CodeEditor = ({ value, onChange, errors = [] }: CodeEditorProps) => {
+const CodeEditor = ({
+  value,
+  onChange,
+  lexicalErrors = [],
+  syntaxErrors = [],
+}: CodeEditorProps) => {
   const monaco = useMonaco();
 
   useEffect(() => {
     if (monaco) {
       const model = monaco.editor.getModels()[0];
-      if (model) {
-        const markers = errors.map((err) => ({
-          severity: monaco.MarkerSeverity.Error,
-          message: `[ERRO LÉXICO] ${err.message}`,
-          startLineNumber: err.line,
-          startColumn: err.column,
-          endLineNumber: err.line,
-          endColumn: err.column + err.length,
-        }));
-        monaco.editor.setModelMarkers(model, "linguagem", markers);
-      }
+  
+      const lexicalMarkers = lexicalErrors.map((err) => ({
+        severity: monaco.MarkerSeverity.Error,
+        message: `[ERRO LÉXICO] ${err.message}`,
+        startLineNumber: err.line,
+        startColumn: err.column,
+        endLineNumber: err.line,
+        endColumn: err.column + err.length,
+      }));
+  
+      const syntaxMarkers = syntaxErrors.map((err) => ({
+        severity: monaco.MarkerSeverity.Warning,
+        message: `[ERRO SINTÁTICO] ${err.message}`,
+        startLineNumber: err.line,
+        startColumn: err.column,
+        endLineNumber: err.line,
+        endColumn: err.column + Math.max(err.length, 1),
+      }));
+  
+      monaco.editor.setModelMarkers(model, "linguagem", [
+        ...lexicalMarkers,
+        ...syntaxMarkers,
+      ]);
     }
-  }, [monaco, errors]);
+
+  }, [monaco, lexicalErrors, syntaxErrors]);
 
   const handleEditorMount: OnMount = (_, monaco) => {
     monaco.languages.register({ id: "linguagem" });
@@ -35,23 +54,16 @@ const CodeEditor = ({ value, onChange, errors = [] }: CodeEditorProps) => {
       tokenizer: {
         root: [
           [/\b(if|else|while)\b/, "keyword"],
-
           [/\b(int|decimal|char|bool)\b/, "type"],
-
           [/\b(true|false)\b/, "number"],
-
           [/[a-zA-Z_][a-zA-Z0-9_]*/, "identifier"],
-
           [/\d+\.\d+/, "number.float"],
           [/\d+/, "number"],
-
           [/[+\-*/%]/, "operator"],
           [/==|!=|>=|<=|>|</, "operator"],
           [/[&|!]/, "operator"],
-
           [/[{}()]/, "delimiter"],
           [/;/, "delimiter"],
-
           [/'[^']'/, "string"],
         ],
       },

@@ -1,46 +1,32 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import CodeEditor from "./components/code-editor";
 import SideBar from "./components/side-bar";
-import type { LexicalError } from "./lexer/types";
-import { Scanner } from "./lexer/scanner";
+import { useCompiler } from "./hooks/use-compiler";
 
-const App = () => {
-  const [sourceCode, setSourceCode] = useState("");
-  const [errors, setErrors] = useState<LexicalError[]>([]);
+export default function App() {
+  const [code, setCode] = useState("");
+  const { lexicalErrors, syntaxErrors, compile } = useCompiler();
 
-  const handleCodeChange = (newCode: string) => {
-    setSourceCode(newCode);
+  const handleChange = (value: string) => {
+    setCode(value);
+    compile(value);
   };
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (sourceCode.trim() !== "") {
-        console.clear();
-        const scanner = new Scanner(sourceCode);
-        const result = scanner.scanTokens();
-        setErrors(result.errors);
-      } else {
-        setErrors([]);
-      }
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [sourceCode]);
+  const handleLoadFile = (content: string) => {
+    handleChange(content);
+  };
 
   return (
     <div className="flex h-screen">
-      <div className="w-[25%]">
-        <SideBar onLoadFile={setSourceCode} sourceCode={sourceCode} />
-      </div>
-      <div className="flex-1">
+      <SideBar onLoadFile={handleLoadFile} sourceCode={code} />
+      <div className="flex-1 min-w-0">
         <CodeEditor
-          value={sourceCode}
-          onChange={handleCodeChange}
-          errors={errors}
+          value={code}
+          onChange={handleChange}
+          lexicalErrors={lexicalErrors}
+          syntaxErrors={syntaxErrors}
         />
       </div>
     </div>
   );
-};
-
-export default App;
+}
