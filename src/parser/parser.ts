@@ -58,6 +58,9 @@ export class Parser {
     } catch (e) {
       if (e instanceof ParseError) {
         this.panicMode();
+        if (!this.isAtEnd()) {
+          this.advance();
+        }
       } else {
         throw e;
       }
