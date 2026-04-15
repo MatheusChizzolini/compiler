@@ -68,6 +68,16 @@ const CodeEditor = ({
         ],
       },
     });
+
+    monaco.languages.setLanguageConfiguration("linguagem", {
+      autoClosingPairs: [
+        { open: "(", close: ")" },
+        { open: "{", close: "}" },
+        { open: "[", close: "]" },
+        { open: '"', close: '"' },
+        { open: "'", close: "'" },
+      ],
+    });
   };
 
   return (
@@ -78,7 +88,7 @@ const CodeEditor = ({
         value={value}
         onChange={(value) => onChange(value || "")}
         onMount={handleEditorMount}
-        options={{ minimap: { enabled: false } }}
+        options={{ minimap: { enabled: false }, }}
       />
     </div>
   );
