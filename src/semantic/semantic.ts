@@ -292,4 +292,17 @@ export class SemanticAnalyzer {
   ) {
     this.errors.push({ message, line, column, length });
   }
+
+  public printReport() {
+    if (this.errors.length === 0) {
+      console.log("[SUCESSO] Análise semântica concluída sem erros.");
+    }
+    else {
+      this.errors.forEach((err) => {
+        console.error(`[ERRO SEMÂNTICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`);
+      });
+
+      console.warn(`[SUCESSO] Análise semântica concluída com ${this.errors.length} erro(s) encontrado(s).`);
+    }
+  }
 }

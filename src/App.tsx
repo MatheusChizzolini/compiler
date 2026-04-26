@@ -5,7 +5,7 @@ import { useCompiler } from "./hooks/use-compiler";
 
 export default function App() {
   const [code, setCode] = useState("");
-  const { lexicalErrors, syntaxErrors, compile } = useCompiler();
+  const { lexicalErrors, syntaxErrors, semanticErrors, compile } = useCompiler();
 
   const handleChange = (value: string) => {
     setCode(value);
@@ -25,6 +25,7 @@ export default function App() {
           onChange={handleChange}
           lexicalErrors={lexicalErrors}
           syntaxErrors={syntaxErrors}
+          semanticErrors={semanticErrors}
         />
       </div>
     </div>

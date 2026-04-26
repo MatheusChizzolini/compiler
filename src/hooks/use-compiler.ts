@@ -42,10 +42,12 @@ export function useCompiler(): UseCompilerReturn {
       const { ast, errors: syntaxErrors } = parser.parse();
       parser.printReport();
 
+      // Análise Semântica
       let semanticErrors: SemanticError[] = [];
       if (ast) {
         const semantic = new SemanticAnalyzer();
         semantic.analyze(ast);
+        semantic.printReport();
         semanticErrors = semantic.errors;
       }
 

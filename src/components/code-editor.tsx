@@ -1,5 +1,5 @@
 import Editor, { useMonaco, type OnMount } from "@monaco-editor/react";
-import type { LexicalError, SyntaxError } from "../types";
+import type { LexicalError, SyntaxError, SemanticError } from "../types";
 import { useEffect } from "react";
 
 interface CodeEditorProps {
@@ -7,6 +7,7 @@ interface CodeEditorProps {
   onChange: (value: string) => void;
   lexicalErrors?: LexicalError[];
   syntaxErrors?: SyntaxError[];
+  semanticErrors?: SemanticError[];
 }
 
 const CodeEditor = ({
@@ -14,6 +15,7 @@ const CodeEditor = ({
   onChange,
   lexicalErrors = [],
   syntaxErrors = [],
+  semanticErrors = [],
 }: CodeEditorProps) => {
   const monaco = useMonaco();
 
@@ -38,14 +40,24 @@ const CodeEditor = ({
         endLineNumber: err.line,
         endColumn: err.column + Math.max(err.length, 1),
       }));
+
+      const semanticMarkers = semanticErrors.map((err) => ({
+        severity: monaco.MarkerSeverity.Warning,
+        message: `[ERRO SEMÂNTICO] ${err.message}`,
+        startLineNumber: err.line,
+        startColumn: err.column,
+        endLineNumber: err.line,
+        endColumn: err.column + Math.max(err.length, 1),
+      }));
   
       monaco.editor.setModelMarkers(model, "linguagem", [
         ...lexicalMarkers,
         ...syntaxMarkers,
+        ...semanticMarkers,
       ]);
     }
 
-  }, [monaco, lexicalErrors, syntaxErrors]);
+  }, [monaco, lexicalErrors, syntaxErrors, semanticErrors]);
 
   const handleEditorMount: OnMount = (_, monaco) => {
     monaco.languages.register({ id: "linguagem" });
