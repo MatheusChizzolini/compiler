@@ -1,11 +1,13 @@
 import { useState, useCallback, useRef } from "react";
-import { Scanner } from "../lexer/scanner";
-import { Parser } from "../parser/parser";
-import type { LexicalError, SyntaxError } from "../types";
+import { Scanner } from "../lexic/scanner";
+import { Parser } from "../syntactic/parser";
+import type { LexicalError, SemanticError, SyntaxError } from "../types";
+import { SemanticAnalyzer } from "../semantic/semantic";
 
 interface CompilerResult {
   lexicalErrors: LexicalError[];
   syntaxErrors: SyntaxError[];
+  semanticErrors: SemanticError[];
 }
 
 interface UseCompilerReturn extends CompilerResult {
@@ -19,6 +21,7 @@ export function useCompiler(): UseCompilerReturn {
   const [result, setResult] = useState<CompilerResult>({
     lexicalErrors: [],
     syntaxErrors: [],
+    semanticErrors: [],
   });
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -36,10 +39,17 @@ export function useCompiler(): UseCompilerReturn {
 
       // Análise Sintática
       const parser = new Parser(tokens);
-      const { errors: syntaxErrors } = parser.parse();
+      const { ast, errors: syntaxErrors } = parser.parse();
       parser.printReport();
 
-      setResult({ lexicalErrors, syntaxErrors });
+      let semanticErrors: SemanticError[] = [];
+      if (ast) {
+        const semantic = new SemanticAnalyzer();
+        semantic.analyze(ast);
+        semanticErrors = semantic.errors;
+      }
+
+      setResult({ lexicalErrors, syntaxErrors, semanticErrors });
     }, DEBOUNCE_MS);
   }, []);
 

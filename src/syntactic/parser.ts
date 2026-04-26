@@ -1,4 +1,14 @@
 import { TokenType, type Token, type SyntaxError } from "../types";
+import type {
+  Statement,
+  Expression,
+  Program,
+  Declaration,
+  Block,
+  Assignment,
+  IfStatement,
+  WhileStatement,
+} from "../ast/ast";
 
 class ParseError extends Error {}
 
@@ -7,9 +17,6 @@ export class Parser {
   private current = 0;
   public errors: SyntaxError[] = [];
 
-  // Tokens de sincronização para o Modo Pânico.
-  // São pontos "seguros" onde o parser consegue se recuperar
-  // após encontrar um erro, pois indicam o início de uma nova estrutura.
   private static readonly SYNC_TOKENS = new Set([
     TokenType.PONTO_VIRGULA,
     TokenType.FECHA_CHAVES,
@@ -23,29 +30,35 @@ export class Parser {
     this.tokens = tokens;
   }
 
-  parse(): { errors: SyntaxError[] } {
-    this.programa();
-    return { errors: this.errors };
+  parse(): { ast: Program; errors: SyntaxError[] } {
+    const programNode = this.programa();
+    return { ast: programNode, errors: this.errors };
   }
 
   // programa = { linha }
-  private programa() {
+  private programa(): Program {
+    const body: Statement[] = [];
     while (!this.isAtEnd()) {
-      this.linha();
+      const statement = this.linha();
+      if (statement) {
+        body.push(statement);
+      }
     }
+    return { kind: "Program", body };
   }
 
   // linha = declaracao | atribuicao | condicional | repeticao
-  private linha() {
+  private linha(): Statement | undefined {
     try {
       if (this.check(TokenType.TIPO)) {
-        this.declaracao();
+        const decl = this.declaracao();
+        return decl ? decl : undefined;
       } else if (this.check(TokenType.IF)) {
-        this.condicional();
+        return this.condicional();
       } else if (this.check(TokenType.WHILE)) {
-        this.repeticao();
+        return this.repeticao();
       } else if (this.check(TokenType.IDENTIFICADOR)) {
-        this.atribuicao();
+        return this.atribuicao();
       } else {
         // Token completamente inesperado — reporta e entra em modo pânico
         const token = this.peek();
@@ -61,6 +74,7 @@ export class Parser {
         if (!this.isAtEnd()) {
           this.advance();
         }
+        return undefined;
       } else {
         throw e;
       }
@@ -68,151 +82,240 @@ export class Parser {
   }
 
   // declaracao = tipo identificador [ "=" expressao ] ";"
-  private declaracao() {
-    this.consume(TokenType.TIPO, "tipo (int, decimal, char, bool)");
-    this.consume(TokenType.IDENTIFICADOR, "identificador após o tipo");
+  private declaracao(): Declaration | null {
+    try {
+      const typeToken = this.consume(
+        TokenType.TIPO,
+        "tipo (int, decimal, char, bool)",
+      );
+      const identifier = this.consume(
+        TokenType.IDENTIFICADOR,
+        "identificador após o tipo",
+      );
 
-    if (this.match(TokenType.ATRIBUICAO)) {
-      this.expressao();
+      let initializer: Expression | null = null;
+      if (this.match(TokenType.ATRIBUICAO)) {
+        initializer = this.expressao();
+      }
+
+      this.consume(TokenType.PONTO_VIRGULA, "';' ao final da declaração");
+
+      return {
+        kind: "Declaration",
+        typeToken,
+        identifier,
+        initializer,
+      };
+    } catch (e) {
+      if (e instanceof ParseError) return null;
+      throw e;
     }
-
-    this.consume(TokenType.PONTO_VIRGULA, "';' ao final da declaração");
   }
 
   // atribuicao = identificador "=" expressao ";"
-  private atribuicao() {
-    this.consume(TokenType.IDENTIFICADOR, "identificador");
+  private atribuicao(): Assignment {
+    const identifier = this.consume(TokenType.IDENTIFICADOR, "identificador");
     this.consume(TokenType.ATRIBUICAO, "'=' após o identificador");
-    this.expressao();
+    const value = this.expressao();
     this.consume(TokenType.PONTO_VIRGULA, "';' ao final da atribuição");
+
+    return {
+      kind: "Assignment",
+      identifier,
+      value,
+    };
   }
 
   // condicional = "if" "(" expressao ")" bloco [ "else" bloco ]
-  private condicional() {
+  private condicional(): IfStatement {
     this.consume(TokenType.IF, "'if'");
     this.consume(TokenType.ABRE_PARENTESES, "'(' após 'if'");
-    this.expressao();
+    const condition = this.expressao();
     this.consume(TokenType.FECHA_PARENTESES, "')' após a condição do 'if'");
-    this.bloco();
+    const thenBranch = this.bloco();
 
+    let elseBranch: Block | null = null;
     if (this.check(TokenType.ELSE)) {
       this.advance(); // consome 'else'
-      this.bloco();
+      elseBranch = this.bloco();
     }
+
+    return {
+      kind: "IfStatement",
+      condition,
+      thenBranch,
+      elseBranch,
+    };
   }
 
   // repeticao = "while" "(" expressao ")" bloco
-  private repeticao() {
+  private repeticao(): WhileStatement {
     this.consume(TokenType.WHILE, "'while'");
     this.consume(TokenType.ABRE_PARENTESES, "'(' após 'while'");
-    this.expressao();
+    const condition = this.expressao();
     this.consume(TokenType.FECHA_PARENTESES, "')' após a condição do 'while'");
-    this.bloco();
+    const body = this.bloco();
+
+    return {
+      kind: "WhileStatement",
+      condition,
+      body,
+    };
   }
 
   // bloco = "{" { linha } "}"
-  private bloco() {
+  private bloco(): Block {
     this.consume(TokenType.ABRE_CHAVES, "'{' para início do bloco");
+    const body: Statement[] = [];
 
     while (!this.check(TokenType.FECHA_CHAVES) && !this.isAtEnd()) {
-      this.linha();
+      const stmt = this.linha();
+      if (stmt) {
+        body.push(stmt);
+      }
     }
 
     this.consume(TokenType.FECHA_CHAVES, "'}' para fechar o bloco");
+
+    return {
+      kind: "Block",
+      body,
+    };
   }
 
   // expressao = expressao_logica
-  private expressao() {
-    this.expressaoLogica();
+  private expressao(): Expression {
+    return this.expressaoLogica();
   }
 
   // expressao_logica = expressao_relacional { operador_logico expressao_relacional }
-  private expressaoLogica() {
-    this.expressaoRelacional();
+  private expressaoLogica(): Expression {
+    let expr = this.expressaoRelacional();
 
     while (this.check(TokenType.OPERADOR_LOGICO)) {
-      this.advance();
-      this.expressaoRelacional();
+      const operator = this.advance();
+      const right = this.expressaoRelacional();
+      expr = {
+        kind: "Binary",
+        left: expr,
+        operator,
+        right,
+      };
     }
+
+    return expr;
   }
 
   // expressao_relacional = expressao_aditiva { operador_relacional expressao_aditiva }
-  private expressaoRelacional() {
-    this.expressaoAditiva();
+  private expressaoRelacional(): Expression {
+    let expr = this.expressaoAditiva(); // expressaoAditiva já foi implementada no passo anterior
 
     while (this.check(TokenType.OPERADOR_RELACIONAL)) {
-      this.advance();
-      this.expressaoAditiva();
+      const operator = this.advance();
+      const right = this.expressaoAditiva();
+      expr = {
+        kind: "Binary",
+        left: expr,
+        operator,
+        right,
+      };
     }
+
+    return expr;
   }
 
   // expressao_aditiva = termo { ( "+" | "-" ) termo }
-  private expressaoAditiva() {
-    this.termo();
+  private expressaoAditiva(): Expression {
+    let expr = this.termo(); // expr inicialmente é a árvore da esquerda
 
     while (this.check(TokenType.MAIS) || this.check(TokenType.MENOS)) {
-      this.advance();
-      this.termo();
+      const operator = this.advance(); // pega o + ou -
+      const right = this.termo(); // analisa o lado direito
+
+      // Constrói o nó binário, onde o nó esquerdo é a expressão acumulada até agora
+      expr = {
+        kind: "Binary",
+        left: expr,
+        operator,
+        right,
+      };
     }
+
+    return expr;
   }
 
   // termo = unario { ( "*" | "/" | "%" ) unario }
-  private termo() {
-    this.unario();
+  private termo(): Expression {
+    let expr = this.unario();
 
     while (
       this.check(TokenType.MULTIPLICACAO) ||
       this.check(TokenType.DIVISAO) ||
       this.check(TokenType.MOD)
     ) {
-      this.advance();
-      this.unario();
+      const operator = this.advance();
+      const right = this.unario();
+      expr = {
+        kind: "Binary",
+        left: expr,
+        operator,
+        right,
+      };
     }
+
+    return expr;
   }
 
   // unario = [ "!" | "-" ] fator
   // Nota: "!" é OPERADOR_LOGICO com lexema "!", "-" é MENOS
-  private unario() {
+  private unario(): Expression {
     const isNegation =
       this.check(TokenType.OPERADOR_LOGICO) && this.peek().lexeme === "!";
     const isNegative = this.check(TokenType.MENOS);
 
     if (isNegation || isNegative) {
-      this.advance();
+      const operator = this.advance();
+      const right = this.fator();
+      return {
+        kind: "Unary",
+        operator,
+        right,
+      };
     }
 
-    this.fator();
+    return this.fator();
   }
 
   // fator = identificador | numero | caractere | booleano | "(" expressao ")"
-  private fator() {
+  private fator(): Expression {
     if (this.check(TokenType.IDENTIFICADOR)) {
-      this.advance();
-    } else if (
+      const token = this.advance();
+      return { kind: "Identifier", name: token.lexeme, token };
+    }
+
+    if (
       this.check(TokenType.NUMERO) ||
       this.check(TokenType.CARACTERE) ||
       this.check(TokenType.BOOLEANO)
     ) {
-      this.advance();
-    } else if (this.check(TokenType.ABRE_PARENTESES)) {
-      this.advance(); // consome '('
-      this.expressao();
-      this.consume(TokenType.FECHA_PARENTESES, "')' para fechar a expressão");
-    } else {
-      const token = this.peek();
-      this.addError(
-        `Esperado identificador, valor ou '(', mas encontrado '${this.describeToken(token)}'`,
-        token,
-      );
-      throw new ParseError();
+      const token = this.advance();
+      return { kind: "Literal", value: token.lexeme, token };
     }
+
+    if (this.match(TokenType.ABRE_PARENTESES)) {
+      const expr = this.expressao();
+      this.consume(TokenType.FECHA_PARENTESES, "')' para fechar a expressão");
+      return expr;
+    }
+
+    const token = this.peek();
+    this.addError(
+      `Esperado identificador, valor ou '(', mas encontrado '${this.describeToken(token)}'`,
+      token,
+    );
+    throw new ParseError();
   }
 
-  /**
-   * Consome o próximo token se for do tipo esperado.
-   * Caso contrário, registra o erro e lança ParseError para acionar
-   * a recuperação no método linha().
-   */
   private consume(type: TokenType, expected: string): Token {
     if (this.check(type)) {
       return this.advance();
@@ -226,10 +329,6 @@ export class Parser {
     throw new ParseError();
   }
 
-  /**
-   * Consome o token atual se for de um dos tipos fornecidos.
-   * Retorna true se consumiu, false caso contrário (sem erro).
-   */
   private match(...types: TokenType[]): boolean {
     for (const type of types) {
       if (this.check(type)) {
@@ -270,16 +369,9 @@ export class Parser {
     });
   }
 
-  /**
-   * Modo Pânico: descarta tokens até encontrar um ponto de sincronização.
-   * Isso permite que o parser continue e reporte múltiplos erros
-   * em uma única passagem, em vez de parar no primeiro.
-   */
   private panicMode() {
     while (!this.isAtEnd()) {
-      // Ponto de sincronização encontrado — para de descartar
       if (Parser.SYNC_TOKENS.has(this.peek().type)) {
-        // Consome o ';' para não entrar em loop na próxima iteração de linha()
         if (this.check(TokenType.PONTO_VIRGULA)) {
           this.advance();
         }
@@ -289,9 +381,6 @@ export class Parser {
     }
   }
 
-  /**
-   * Retorna uma descrição legível do token para as mensagens de erro.
-   */
   private describeToken(token: Token): string {
     if (token.type === TokenType.EOF) return "fim do arquivo";
     return token.lexeme;

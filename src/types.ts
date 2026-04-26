@@ -43,3 +43,19 @@ export interface SyntaxError {
   column: number;
   length: number;
 }
+
+export interface SymbolInfo {
+  name: string;
+  type: string;
+  isInitialized: boolean;
+  isUsed: boolean;
+  line: number;
+  column: number;
+}
+
+export interface SemanticError {
+  message: string;
+  line: number;
+  column: number;
+  length: number;
+}
