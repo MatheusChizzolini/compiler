@@ -59,3 +59,11 @@ export interface SemanticError {
   column: number;
   length: number;
 }
+
+export type LogType = "info" | "error" | "warning" | "success";
+
+export interface Log {
+  type: LogType;
+  message: string;
+  timestamp: string;
+}

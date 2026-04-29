@@ -93,7 +93,7 @@ const CodeEditor = ({
   };
 
   return (
-    <div className="h-screen">
+    <div className="h-full">
       <Editor
         defaultLanguage="linguagem"
         theme="vs-dark"
