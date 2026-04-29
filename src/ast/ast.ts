@@ -13,7 +13,8 @@ export type Expression =
   | BinaryExpression
   | UnaryExpression
   | Literal
-  | IdentifierExpr;
+  | IdentifierExpr
+  | CastExpression;
 
 export interface Program {
   kind: "Program";
@@ -78,4 +79,10 @@ export interface IdentifierExpr {
   kind: "Identifier";
   name: string;
   token: Token;
+}
+
+export interface CastExpression {
+  kind: "Cast";
+  targetType: Token;
+  expression: Expression;
 }

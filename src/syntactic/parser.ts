@@ -286,7 +286,7 @@ export class Parser {
     return this.fator();
   }
 
-  // fator = identificador | numero | caractere | booleano | "(" expressao ")"
+  // fator = identificador | numero | caractere | booleano | "(" expressao ")" | "(" tipo ")" unario
   private fator(): Expression {
     if (this.check(TokenType.IDENTIFICADOR)) {
       const token = this.advance();
@@ -303,6 +303,14 @@ export class Parser {
     }
 
     if (this.match(TokenType.ABRE_PARENTESES)) {
+      // Verifica se é um casting: "(" tipo ")" unario
+      if (this.check(TokenType.TIPO)) {
+        const targetType = this.advance();
+        this.consume(TokenType.FECHA_PARENTESES, "')' após o tipo no casting");
+        const expression = this.unario();
+        return { kind: "Cast", targetType, expression };
+      }
+
       const expr = this.expressao();
       this.consume(TokenType.FECHA_PARENTESES, "')' para fechar a expressão");
       return expr;

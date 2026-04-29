@@ -11,6 +11,7 @@ import type {
   Statement,
   UnaryExpression,
   WhileStatement,
+  CastExpression,
 } from "../ast/ast";
 import { TokenType, type SemanticError } from "../types";
 import { SymbolTable } from "./symbol-table";
@@ -147,6 +148,8 @@ export class SemanticAnalyzer {
         return this.visitBinaryExpression(expr);
       case "Unary":
         return this.visitUnaryExpression(expr);
+      case "Cast":
+        return this.visitCastExpression(expr);
       default:
         return "error";
     }
@@ -264,6 +267,44 @@ export class SemanticAnalyzer {
     }
 
     return "error";
+  }
+
+  private visitCastExpression(expr: CastExpression): ResolvedType {
+    const targetType = expr.targetType.lexeme as ResolvedType;
+    const expressionType = this.visitExpression(expr.expression);
+
+    if (expressionType === "error") return "error";
+
+    if (this.isValidCast(expressionType, targetType)) {
+      return targetType;
+    }
+
+    this.addError(
+      `Cast inválido: não é possível converter '${expressionType}' para '${targetType}'.`,
+      expr.targetType.line,
+      expr.targetType.column,
+      expr.targetType.lexeme.length,
+    );
+    return "error";
+  }
+
+  private isValidCast(from: ResolvedType, to: ResolvedType): boolean {
+    if (from === to) return true;
+
+    // Conversões numéricas
+    if (
+      (from === "int" || from === "decimal") &&
+      (to === "int" || to === "decimal")
+    ) {
+      return true;
+    }
+
+    // Conversões entre int e char (comum em C-like)
+    if ((from === "int" && to === "char") || (from === "char" && to === "int")) {
+      return true;
+    }
+
+    return false;
   }
 
   private getLiteralType(literal: Literal): ResolvedType {
