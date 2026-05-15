@@ -3,11 +3,13 @@ import { Scanner } from "../lexic/scanner";
 import { Parser } from "../syntactic/parser";
 import type { LexicalError, SemanticError, SyntaxError, Log } from "../types";
 import { SemanticAnalyzer } from "../semantic/semantic";
+import { IntermediateCodeGenerator } from "../intermediate/code-generator";
 
 interface CompilerResult {
   lexicalErrors: LexicalError[];
   syntaxErrors: SyntaxError[];
   semanticErrors: SemanticError[];
+  intermediateCode: string[];
   logs: Log[];
 }
 
@@ -23,6 +25,7 @@ export function useCompiler(): UseCompilerReturn {
     lexicalErrors: [],
     syntaxErrors: [],
     semanticErrors: [],
+    intermediateCode: [],
     logs: [],
   });
 
@@ -80,6 +83,7 @@ export function useCompiler(): UseCompilerReturn {
 
       // Análise Semântica
       let semanticErrors: SemanticError[] = [];
+      let intermediateCode: string[] = [];
       if (ast) {
         const semantic = new SemanticAnalyzer();
         semantic.analyze(ast);
@@ -102,7 +106,50 @@ export function useCompiler(): UseCompilerReturn {
         }
       }
 
-      setResult({ lexicalErrors, syntaxErrors, semanticErrors, logs });
+      if (
+        lexicalErrors.length === 0 &&
+        syntaxErrors.length === 0 &&
+        semanticErrors.length === 0
+      ) {
+        const intermediateGenerator = new IntermediateCodeGenerator();
+        intermediateCode = intermediateGenerator.generate(ast).instructions;
+
+        logs.push({
+          type: "success",
+          message: "Geração de código intermediário concluída com sucesso.",
+          timestamp,
+        });
+
+        if (intermediateCode.length > 0) {
+          logs.push({
+            type: "info",
+            message: "Código intermediário:",
+            timestamp,
+          });
+
+          intermediateCode.forEach((instruction) =>
+            logs.push({
+              type: "info",
+              message: instruction,
+              timestamp,
+            })
+          );
+        } else {
+          logs.push({
+            type: "info",
+            message: "Nenhuma instrução intermediária gerada.",
+            timestamp,
+          });
+        }
+      }
+
+      setResult({
+        lexicalErrors,
+        syntaxErrors,
+        semanticErrors,
+        intermediateCode,
+        logs,
+      });
     }, DEBOUNCE_MS);
   }, []);
 
@@ -110,6 +157,8 @@ export function useCompiler(): UseCompilerReturn {
     ...result,
     compile,
     hasErrors:
-      result.lexicalErrors.length > 0 || result.syntaxErrors.length > 0,
+      result.lexicalErrors.length > 0 ||
+      result.syntaxErrors.length > 0 ||
+      result.semanticErrors.length > 0,
   };
 }

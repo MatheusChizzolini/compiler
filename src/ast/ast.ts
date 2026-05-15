@@ -71,7 +71,7 @@ export interface UnaryExpression {
 
 export interface Literal {
   kind: "Literal";
-  value: any;
+  value: string;
   token: Token;
 }
 
