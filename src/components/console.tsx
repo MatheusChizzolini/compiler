@@ -28,8 +28,8 @@ const Console = ({ logs }: ConsoleProps) => {
   };
 
   return (
-    <div className="flex flex-col h-64 bg-[#1e1e1e] border-t border-gray-700 font-mono text-sm">
-      <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-700">
+    <div className="flex flex-col h-64 bg-[#1e1e1e] font-mono text-sm">
+      <div className="flex items-center justify-between px-4 py-2 bg-[#252526]">
         <span className="text-gray-400 font-semibold uppercase tracking-wider text-xs">Console</span>
       </div>
       <div 

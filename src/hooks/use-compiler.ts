@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { Scanner } from "../lexic/scanner";
 import { Parser } from "../syntactic/parser";
 import type { LexicalError, SemanticError, SyntaxError, Log } from "../types";
@@ -18,8 +18,6 @@ interface UseCompilerReturn extends CompilerResult {
   hasErrors: boolean;
 }
 
-const DEBOUNCE_MS = 400;
-
 export function useCompiler(): UseCompilerReturn {
   const [result, setResult] = useState<CompilerResult>({
     lexicalErrors: [],
@@ -29,128 +27,118 @@ export function useCompiler(): UseCompilerReturn {
     logs: [],
   });
 
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const compile = useCallback((source: string) => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
+    console.clear();
+    const logs: Log[] = [];
+    const timestamp = new Date().toLocaleTimeString();
+
+    const scanner = new Scanner(source);
+    const { tokens, errors: lexicalErrors } = scanner.scanTokens();
+
+    if (lexicalErrors.length > 0) {
+      lexicalErrors.forEach((err) =>
+        logs.push({
+          type: "error",
+          message: `[ERRO LÉXICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
+          timestamp,
+        }),
+      );
+    } else {
+      logs.push({
+        type: "success",
+        message: "Análise léxica concluída com sucesso.",
+        timestamp,
+      });
     }
 
-    debounceTimer.current = setTimeout(() => {
-      console.clear();
-      const logs: Log[] = [];
-      const timestamp = new Date().toLocaleTimeString();
+    const parser = new Parser(tokens);
+    const { ast, errors: syntaxErrors } = parser.parse();
 
-      // Análise Léxica
-      const scanner = new Scanner(source);
-      const { tokens, errors: lexicalErrors } = scanner.scanTokens();
-
-      if (lexicalErrors.length > 0) {
-        lexicalErrors.forEach((err) =>
-          logs.push({
-            type: "error",
-            message: `[ERRO LÉXICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
-            timestamp,
-          })
-        );
-      } else {
+    if (syntaxErrors.length > 0) {
+      syntaxErrors.forEach((err) =>
         logs.push({
-          type: "success",
-          message: "Análise léxica concluída com sucesso.",
+          type: "error",
+          message: `[ERRO SINTÁTICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
           timestamp,
-        });
-      }
-
-      // Análise Sintática
-      const parser = new Parser(tokens);
-      const { ast, errors: syntaxErrors } = parser.parse();
-
-      if (syntaxErrors.length > 0) {
-        syntaxErrors.forEach((err) =>
-          logs.push({
-            type: "error",
-            message: `[ERRO SINTÁTICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
-            timestamp,
-          })
-        );
-      } else {
-        logs.push({
-          type: "success",
-          message: "Análise sintática concluída com sucesso.",
-          timestamp,
-        });
-      }
-
-      // Análise Semântica
-      let semanticErrors: SemanticError[] = [];
-      let intermediateCode: string[] = [];
-      if (ast) {
-        const semantic = new SemanticAnalyzer();
-        semantic.analyze(ast);
-        semanticErrors = semantic.errors;
-
-        if (semanticErrors.length > 0) {
-          semanticErrors.forEach((err) =>
-            logs.push({
-              type: "error",
-              message: `[ERRO SEMÂNTICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
-              timestamp,
-            })
-          );
-        } else {
-          logs.push({
-            type: "success",
-            message: "Análise semântica concluída com sucesso.",
-            timestamp,
-          });
-        }
-      }
-
-      if (
-        lexicalErrors.length === 0 &&
-        syntaxErrors.length === 0 &&
-        semanticErrors.length === 0
-      ) {
-        const intermediateGenerator = new IntermediateCodeGenerator();
-        intermediateCode = intermediateGenerator.generate(ast).instructions;
-
-        logs.push({
-          type: "success",
-          message: "Geração de código intermediário concluída com sucesso.",
-          timestamp,
-        });
-
-        if (intermediateCode.length > 0) {
-          logs.push({
-            type: "info",
-            message: "Código intermediário:",
-            timestamp,
-          });
-
-          intermediateCode.forEach((instruction) =>
-            logs.push({
-              type: "info",
-              message: instruction,
-              timestamp,
-            })
-          );
-        } else {
-          logs.push({
-            type: "info",
-            message: "Nenhuma instrução intermediária gerada.",
-            timestamp,
-          });
-        }
-      }
-
-      setResult({
-        lexicalErrors,
-        syntaxErrors,
-        semanticErrors,
-        intermediateCode,
-        logs,
+        }),
+      );
+    } else {
+      logs.push({
+        type: "success",
+        message: "Análise sintática concluída com sucesso.",
+        timestamp,
       });
-    }, DEBOUNCE_MS);
+    }
+
+    let semanticErrors: SemanticError[] = [];
+    let intermediateCode: string[] = [];
+
+    if (ast) {
+      const semantic = new SemanticAnalyzer();
+      semantic.analyze(ast);
+      semanticErrors = semantic.errors;
+
+      if (semanticErrors.length > 0) {
+        semanticErrors.forEach((err) =>
+          logs.push({
+            type: "error",
+            message: `[ERRO SEMÂNTICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
+            timestamp,
+          }),
+        );
+      } else {
+        logs.push({
+          type: "success",
+          message: "Análise semântica concluída com sucesso.",
+          timestamp,
+        });
+      }
+    }
+
+    if (
+      lexicalErrors.length === 0 &&
+      syntaxErrors.length === 0 &&
+      semanticErrors.length === 0
+    ) {
+      const intermediateGenerator = new IntermediateCodeGenerator();
+      intermediateCode = intermediateGenerator.generate(ast).instructions;
+
+      logs.push({
+        type: "success",
+        message: "Geração de código intermediário concluída com sucesso.",
+        timestamp,
+      });
+
+      if (intermediateCode.length > 0) {
+        logs.push({
+          type: "info",
+          message: "Código intermediário:",
+          timestamp,
+        });
+
+        intermediateCode.forEach((instruction) =>
+          logs.push({
+            type: "info",
+            message: instruction,
+            timestamp,
+          }),
+        );
+      } else {
+        logs.push({
+          type: "info",
+          message: "Nenhuma instrução intermediária gerada.",
+          timestamp,
+        });
+      }
+    }
+
+    setResult({
+      lexicalErrors,
+      syntaxErrors,
+      semanticErrors,
+      intermediateCode,
+      logs,
+    });
   }, []);
 
   return {

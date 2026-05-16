@@ -22,7 +22,7 @@ const CodeEditor = ({
   useEffect(() => {
     if (monaco) {
       const model = monaco.editor.getModels()[0];
-  
+
       const lexicalMarkers = lexicalErrors.map((err) => ({
         severity: monaco.MarkerSeverity.Error,
         message: `[ERRO LÉXICO] ${err.message}`,
@@ -31,7 +31,7 @@ const CodeEditor = ({
         endLineNumber: err.line,
         endColumn: err.column + err.length,
       }));
-  
+
       const syntaxMarkers = syntaxErrors.map((err) => ({
         severity: monaco.MarkerSeverity.Warning,
         message: `[ERRO SINTÁTICO] ${err.message}`,
@@ -49,14 +49,13 @@ const CodeEditor = ({
         endLineNumber: err.line,
         endColumn: err.column + Math.max(err.length, 1),
       }));
-  
+
       monaco.editor.setModelMarkers(model, "linguagem", [
         ...lexicalMarkers,
         ...syntaxMarkers,
         ...semanticMarkers,
       ]);
     }
-
   }, [monaco, lexicalErrors, syntaxErrors, semanticErrors]);
 
   const handleEditorMount: OnMount = (_, monaco) => {
@@ -100,7 +99,7 @@ const CodeEditor = ({
         value={value}
         onChange={(value) => onChange(value || "")}
         onMount={handleEditorMount}
-        options={{ minimap: { enabled: false }, }}
+        options={{ minimap: { enabled: false }, fontSize: 17 }}
       />
     </div>
   );

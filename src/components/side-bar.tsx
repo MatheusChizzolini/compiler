@@ -1,9 +1,10 @@
 interface SideBarProps {
   onLoadFile: (content: string) => void;
+  onCompile: () => void;
   sourceCode: string;
 }
 
-const SideBar = ({ onLoadFile, sourceCode }: SideBarProps) => {
+const SideBar = ({ onLoadFile, onCompile, sourceCode }: SideBarProps) => {
   const handleLoadFile = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -33,18 +34,24 @@ const SideBar = ({ onLoadFile, sourceCode }: SideBarProps) => {
   };
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-67">
+      <button
+        onClick={onCompile}
+        className="bg-green-700 font-bold py-2 px-4 m-4 shadow-2xl hover:bg-green-600 cursor-pointer"
+      >
+        Compilar
+      </button>
       <button
         onClick={handleLoadFile}
-        className="bg-blue-800 font-bold py-2 px-4 m-4 rounded-xl shadow-2xl hover:bg-blue-700"
+        className="bg-blue-800 font-bold py-2 px-4 mx-4 mb-4 shadow-2xl hover:bg-blue-700 cursor-pointer"
       >
-        Carregar Arquivo (.txt)
+        Carregar arquivo
       </button>
       <button
         onClick={handleSaveFile}
-        className="bg-blue-800 font-bold py-2 px-4 mx-4 rounded-xl shadow-2xl hover:bg-blue-700"
+        className="bg-blue-800 font-bold py-2 px-4 mx-4 shadow-2xl hover:bg-blue-700 cursor-pointer"
       >
-        Salvar Arquivo (.txt)
+        Salvar arquivo
       </button>
     </div>
   );
