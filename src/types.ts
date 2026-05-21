@@ -60,6 +60,13 @@ export interface SemanticError {
   length: number;
 }
 
+export interface SemanticWarning {
+  message: string;
+  line: number;
+  column: number;
+  length: number;
+}
+
 export type LogType = "info" | "error" | "warning" | "success";
 
 export interface Log {

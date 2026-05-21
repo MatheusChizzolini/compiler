@@ -1,6 +1,11 @@
 import Editor, { useMonaco, type OnMount } from "@monaco-editor/react";
-import type { LexicalError, SyntaxError, SemanticError } from "../types";
 import { useEffect } from "react";
+import type {
+  LexicalError,
+  SemanticError,
+  SemanticWarning,
+  SyntaxError,
+} from "../types";
 
 interface CodeEditorProps {
   value: string;
@@ -8,6 +13,7 @@ interface CodeEditorProps {
   lexicalErrors?: LexicalError[];
   syntaxErrors?: SyntaxError[];
   semanticErrors?: SemanticError[];
+  semanticWarnings?: SemanticWarning[];
 }
 
 const CodeEditor = ({
@@ -16,6 +22,7 @@ const CodeEditor = ({
   lexicalErrors = [],
   syntaxErrors = [],
   semanticErrors = [],
+  semanticWarnings = [],
 }: CodeEditorProps) => {
   const monaco = useMonaco();
 
@@ -25,7 +32,7 @@ const CodeEditor = ({
 
       const lexicalMarkers = lexicalErrors.map((err) => ({
         severity: monaco.MarkerSeverity.Error,
-        message: `[ERRO LÉXICO] ${err.message}`,
+        message: `[ERRO LEXICO] ${err.message}`,
         startLineNumber: err.line,
         startColumn: err.column,
         endLineNumber: err.line,
@@ -34,7 +41,7 @@ const CodeEditor = ({
 
       const syntaxMarkers = syntaxErrors.map((err) => ({
         severity: monaco.MarkerSeverity.Warning,
-        message: `[ERRO SINTÁTICO] ${err.message}`,
+        message: `[ERRO SINTATICO] ${err.message}`,
         startLineNumber: err.line,
         startColumn: err.column,
         endLineNumber: err.line,
@@ -43,20 +50,30 @@ const CodeEditor = ({
 
       const semanticMarkers = semanticErrors.map((err) => ({
         severity: monaco.MarkerSeverity.Warning,
-        message: `[ERRO SEMÂNTICO] ${err.message}`,
+        message: `[ERRO SEMANTICO] ${err.message}`,
         startLineNumber: err.line,
         startColumn: err.column,
         endLineNumber: err.line,
         endColumn: err.column + Math.max(err.length, 1),
       }));
 
+      const semanticWarningMarkers = semanticWarnings.map((warning) => ({
+        severity: monaco.MarkerSeverity.Info,
+        message: `[AVISO SEMANTICO] ${warning.message}`,
+        startLineNumber: warning.line,
+        startColumn: warning.column,
+        endLineNumber: warning.line,
+        endColumn: warning.column + Math.max(warning.length, 1),
+      }));
+
       monaco.editor.setModelMarkers(model, "linguagem", [
         ...lexicalMarkers,
         ...syntaxMarkers,
         ...semanticMarkers,
+        ...semanticWarningMarkers,
       ]);
     }
-  }, [monaco, lexicalErrors, syntaxErrors, semanticErrors]);
+  }, [monaco, lexicalErrors, syntaxErrors, semanticErrors, semanticWarnings]);
 
   const handleEditorMount: OnMount = (_, monaco) => {
     monaco.languages.register({ id: "linguagem" });

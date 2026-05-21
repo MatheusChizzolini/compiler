@@ -3,10 +3,22 @@ import CodeEditor from "./components/code-editor";
 import SideBar from "./components/side-bar";
 import Console from "./components/console";
 import { useCompiler } from "./hooks/use-compiler";
+import OutputPanel from "./components/output-panel";
 
 export default function App() {
   const [code, setCode] = useState("");
-  const { lexicalErrors, syntaxErrors, semanticErrors, logs, compile } = useCompiler();
+  const {
+    lexicalErrors,
+    syntaxErrors,
+    semanticErrors,
+    semanticWarnings,
+    intermediateCode,
+    optimizedCode,
+    optimizationLogs,
+    machineCode,
+    logs,
+    compile,
+  } = useCompiler();
 
   const handleChange = (value: string) => {
     setCode(value);
@@ -28,13 +40,22 @@ export default function App() {
         sourceCode={code}
       />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <div className="flex-1 min-h-0">
-          <CodeEditor
-            value={code}
-            onChange={handleChange}
-            lexicalErrors={lexicalErrors}
-            syntaxErrors={syntaxErrors}
-            semanticErrors={semanticErrors}
+        <div className="flex flex-1 min-h-0">
+          <div className="min-w-0 flex-1">
+            <CodeEditor
+              value={code}
+              onChange={handleChange}
+              lexicalErrors={lexicalErrors}
+              syntaxErrors={syntaxErrors}
+              semanticErrors={semanticErrors}
+              semanticWarnings={semanticWarnings}
+            />
+          </div>
+          <OutputPanel
+            intermediateCode={intermediateCode}
+            optimizedCode={optimizedCode}
+            optimizationLogs={optimizationLogs}
+            machineCode={machineCode}
           />
         </div>
         <Console logs={logs} /> 

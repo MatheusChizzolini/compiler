@@ -13,7 +13,7 @@ import type {
   WhileStatement,
   CastExpression,
 } from "../ast/ast";
-import { TokenType, type SemanticError } from "../types";
+import { TokenType, type SemanticError, type SemanticWarning } from "../types";
 import { SymbolTable } from "./symbol-table";
 
 type ResolvedType = "int" | "decimal" | "char" | "bool" | "error";
@@ -21,11 +21,13 @@ type ResolvedType = "int" | "decimal" | "char" | "bool" | "error";
 export class SemanticAnalyzer {
   public symbolTable: SymbolTable = new SymbolTable();
   public errors: SemanticError[] = [];
+  public warnings: SemanticWarning[] = [];
 
   public analyze(program: Program) {
     this.visitProgram(program);
     this.symbolTable.checkUnusedVariables();
     this.errors.push(...this.symbolTable.errors);
+    this.warnings.push(...this.symbolTable.warnings);
   }
 
   private visitProgram(program: Program) {

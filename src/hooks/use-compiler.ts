@@ -1,15 +1,29 @@
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Scanner } from "../lexic/scanner";
 import { Parser } from "../syntactic/parser";
-import type { LexicalError, SemanticError, SyntaxError, Log } from "../types";
+import type {
+  LexicalError,
+  Log,
+  SemanticError,
+  SemanticWarning,
+  SyntaxError,
+} from "../types";
 import { SemanticAnalyzer } from "../semantic/semantic";
 import { IntermediateCodeGenerator } from "../intermediate/code-generator";
+import {
+  IntermediateCodeOptimizer,
+  type OptimizationLog,
+} from "../intermediate/code-optimizer";
 
 interface CompilerResult {
   lexicalErrors: LexicalError[];
   syntaxErrors: SyntaxError[];
   semanticErrors: SemanticError[];
+  semanticWarnings: SemanticWarning[];
   intermediateCode: string[];
+  optimizedCode: string[];
+  optimizationLogs: OptimizationLog[];
+  machineCode: string[];
   logs: Log[];
 }
 
@@ -23,7 +37,11 @@ export function useCompiler(): UseCompilerReturn {
     lexicalErrors: [],
     syntaxErrors: [],
     semanticErrors: [],
+    semanticWarnings: [],
     intermediateCode: [],
+    optimizedCode: [],
+    optimizationLogs: [],
+    machineCode: [],
     logs: [],
   });
 
@@ -39,14 +57,14 @@ export function useCompiler(): UseCompilerReturn {
       lexicalErrors.forEach((err) =>
         logs.push({
           type: "error",
-          message: `[ERRO LÉXICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
+          message: `[ERRO LEXICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
           timestamp,
         }),
       );
     } else {
       logs.push({
         type: "success",
-        message: "Análise léxica concluída com sucesso.",
+        message: "Analise lexica concluida com sucesso.",
         timestamp,
       });
     }
@@ -58,41 +76,54 @@ export function useCompiler(): UseCompilerReturn {
       syntaxErrors.forEach((err) =>
         logs.push({
           type: "error",
-          message: `[ERRO SINTÁTICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
+          message: `[ERRO SINTATICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
           timestamp,
         }),
       );
     } else {
       logs.push({
         type: "success",
-        message: "Análise sintática concluída com sucesso.",
+        message: "Analise sintatica concluida com sucesso.",
         timestamp,
       });
     }
 
     let semanticErrors: SemanticError[] = [];
+    let semanticWarnings: SemanticWarning[] = [];
     let intermediateCode: string[] = [];
+    let optimizedCode: string[] = [];
+    let optimizationLogs: OptimizationLog[] = [];
+    const machineCode: string[] = [];
 
     if (ast) {
       const semantic = new SemanticAnalyzer();
       semantic.analyze(ast);
       semanticErrors = semantic.errors;
+      semanticWarnings = semantic.warnings;
 
       if (semanticErrors.length > 0) {
         semanticErrors.forEach((err) =>
           logs.push({
             type: "error",
-            message: `[ERRO SEMÂNTICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
+            message: `[ERRO SEMANTICO] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
             timestamp,
           }),
         );
       } else {
         logs.push({
           type: "success",
-          message: "Análise semântica concluída com sucesso.",
+          message: "Analise semantica concluida com sucesso.",
           timestamp,
         });
       }
+
+      semanticWarnings.forEach((warning) =>
+        logs.push({
+          type: "warning",
+          message: `[AVISO SEMANTICO] Linha ${warning.line}, Coluna ${warning.column}: ${warning.message}`,
+          timestamp,
+        }),
+      );
     }
 
     if (
@@ -105,28 +136,44 @@ export function useCompiler(): UseCompilerReturn {
 
       logs.push({
         type: "success",
-        message: "Geração de código intermediário concluída com sucesso.",
+        message: "Geracao de codigo intermediario concluida com sucesso.",
         timestamp,
       });
 
       if (intermediateCode.length > 0) {
+        const optimizer = new IntermediateCodeOptimizer();
+        const optimizationResult = optimizer.optimize(intermediateCode);
+        optimizedCode = optimizationResult.instructions;
+        optimizationLogs = optimizationResult.optimizations;
+
         logs.push({
-          type: "info",
-          message: "Código intermediário:",
+          type: "success",
+          message: `Otimizacao de codigo intermediario concluida: ${intermediateCode.length} instrucoes originais, ${optimizedCode.length} apos otimizacao.`,
           timestamp,
         });
 
-        intermediateCode.forEach((instruction) =>
+        if (optimizationLogs.length > 0) {
+          const appliedRules = new Set(
+            optimizationLogs.map((optimization) => optimization.rule),
+          );
+
           logs.push({
             type: "info",
-            message: instruction,
+            message: `Regras aplicadas: ${Array.from(appliedRules).join(", ")}.`,
             timestamp,
-          }),
-        );
+          });
+        } else {
+          logs.push({
+            type: "info",
+            message:
+              "Nenhuma otimizacao aplicavel ao codigo intermediario gerado.",
+            timestamp,
+          });
+        }
       } else {
         logs.push({
           type: "info",
-          message: "Nenhuma instrução intermediária gerada.",
+          message: "Nenhuma instrucao intermediaria gerada.",
           timestamp,
         });
       }
@@ -136,7 +183,11 @@ export function useCompiler(): UseCompilerReturn {
       lexicalErrors,
       syntaxErrors,
       semanticErrors,
+      semanticWarnings,
       intermediateCode,
+      optimizedCode,
+      optimizationLogs,
+      machineCode,
       logs,
     });
   }, []);

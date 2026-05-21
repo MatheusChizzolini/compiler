@@ -1,8 +1,9 @@
-import type { SemanticError, SymbolInfo } from "../types";
+import type { SemanticError, SemanticWarning, SymbolInfo } from "../types";
 
 export class SymbolTable {
   private table: Map<string, SymbolInfo> = new Map();
   public errors: SemanticError[] = [];
+  public warnings: SemanticWarning[] = [];
 
   public insert(symbol: SymbolInfo): void {
     if (!this.table.has(symbol.name)) {
@@ -34,7 +35,7 @@ export class SymbolTable {
   public checkUnusedVariables(): void {
     for (const [name, symbol] of this.table.entries()) {
       if (!symbol.isUsed) {
-        this.errors.push({
+        this.warnings.push({
           message: `Variável '${name}' declarada mas nunca usada`,
           line: symbol.line,
           column: symbol.column,
