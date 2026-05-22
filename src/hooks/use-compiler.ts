@@ -14,6 +14,7 @@ import {
   IntermediateCodeOptimizer,
   type OptimizationLog,
 } from "../intermediate/code-optimizer";
+import { SimpSimGenerator } from "../machine/simpsim-generator";
 
 interface CompilerResult {
   lexicalErrors: LexicalError[];
@@ -93,7 +94,7 @@ export function useCompiler(): UseCompilerReturn {
     let intermediateCode: string[] = [];
     let optimizedCode: string[] = [];
     let optimizationLogs: OptimizationLog[] = [];
-    const machineCode: string[] = [];
+    let machineCode: string[] = [];
 
     if (ast) {
       const semantic = new SemanticAnalyzer();
@@ -170,6 +171,15 @@ export function useCompiler(): UseCompilerReturn {
             timestamp,
           });
         }
+
+        const simpsimGenerator = new SimpSimGenerator();
+        machineCode = simpsimGenerator.generate(optimizedCode).instructions;
+
+        logs.push({
+          type: "success",
+          message: `Geracao de codigo SimpSIM concluida: ${machineCode.length} linhas geradas.`,
+          timestamp,
+        });
       } else {
         logs.push({
           type: "info",

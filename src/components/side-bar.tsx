@@ -1,10 +1,18 @@
 interface SideBarProps {
   onLoadFile: (content: string) => void;
   onCompile: () => void;
+  onGenerateAsm: () => void;
+  canGenerateAsm: boolean;
   sourceCode: string;
 }
 
-const SideBar = ({ onLoadFile, onCompile, sourceCode }: SideBarProps) => {
+const SideBar = ({
+  onLoadFile,
+  onCompile,
+  onGenerateAsm,
+  canGenerateAsm,
+  sourceCode,
+}: SideBarProps) => {
   const handleLoadFile = () => {
     const input = document.createElement("input");
     input.type = "file";
@@ -40,6 +48,13 @@ const SideBar = ({ onLoadFile, onCompile, sourceCode }: SideBarProps) => {
         className="bg-green-700 font-bold py-2 px-4 m-4 shadow-2xl hover:bg-green-600 cursor-pointer"
       >
         Compilar
+      </button>
+      <button
+        onClick={onGenerateAsm}
+        disabled={!canGenerateAsm}
+        className="bg-purple-700 font-bold py-2 px-4 mx-4 mb-4 shadow-2xl hover:bg-purple-600 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400 cursor-pointer"
+      >
+        Gerar .asm
       </button>
       <button
         onClick={handleLoadFile}

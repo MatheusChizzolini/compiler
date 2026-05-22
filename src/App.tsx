@@ -32,11 +32,27 @@ export default function App() {
     compile(code);
   };
 
+  const handleGenerateAsm = () => {
+    if (machineCode.length === 0) return;
+
+    const blob = new Blob([machineCode.join("\n")], {
+      type: "text/plain",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "program.asm";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex h-screen">
       <SideBar
         onLoadFile={handleLoadFile}
         onCompile={handleCompile}
+        onGenerateAsm={handleGenerateAsm}
+        canGenerateAsm={machineCode.length > 0}
         sourceCode={code}
       />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
