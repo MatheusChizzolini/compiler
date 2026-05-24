@@ -41,7 +41,6 @@ export class IntermediateCodeOptimizer {
       optimized = this.simplifyInstructions(optimized);
       optimized = this.eliminateCommonSubexpressions(optimized);
       optimized = this.removeUnreachableCode(optimized);
-      optimized = this.removeUnusedLabels(optimized);
       optimized = this.eliminateDeadTemporaryAssignments(optimized);
 
       changed = beforePass !== optimized.join("\n");
@@ -111,48 +110,12 @@ export class IntermediateCodeOptimizer {
       if (assignment) {
         const simplified = this.simplifyAssignment(assignment);
 
-        if (simplified === null) {
-          this.addOptimization(
-            "Eliminação de atribuição redundante",
-            instruction,
-            null,
-          );
-          continue;
-        }
-
         if (simplified.instruction !== instruction) {
           this.addOptimization(simplified.rule, instruction, simplified.instruction);
         }
 
         optimized.push(simplified.instruction);
         continue;
-      }
-
-      const conditionalJump = this.parseConditionalJump(instruction);
-      if (conditionalJump) {
-        const evaluatedCondition = this.evaluateCondition(
-          conditionalJump.condition,
-        );
-
-        if (evaluatedCondition === "true") {
-          const updatedInstruction = `goto ${conditionalJump.label}`;
-          this.addOptimization(
-            "Simplificação de salto condicional",
-            instruction,
-            updatedInstruction,
-          );
-          optimized.push(updatedInstruction);
-          continue;
-        }
-
-        if (evaluatedCondition === "false") {
-          this.addOptimization(
-            "Simplificação de salto condicional",
-            instruction,
-            null,
-          );
-          continue;
-        }
       }
 
       optimized.push(instruction);
@@ -240,33 +203,6 @@ export class IntermediateCodeOptimizer {
     return optimized;
   }
 
-  private removeUnusedLabels(instructions: string[]): string[] {
-    const usedLabels = new Set<string>();
-
-    for (const instruction of instructions) {
-      const jump = this.parseUnconditionalJump(instruction);
-      if (jump) {
-        usedLabels.add(jump);
-        continue;
-      }
-
-      const conditionalJump = this.parseConditionalJump(instruction);
-      if (conditionalJump) {
-        usedLabels.add(conditionalJump.label);
-      }
-    }
-
-    return instructions.filter((instruction) => {
-      const label = this.parseLabel(instruction);
-      if (!label || usedLabels.has(label)) {
-        return true;
-      }
-
-      this.addOptimization("Eliminação de rótulos não utilizados", instruction, null);
-      return false;
-    });
-  }
-
   private eliminateDeadTemporaryAssignments(instructions: string[]): string[] {
     const liveTemporaries = new Set<string>();
     const optimized: string[] = [];
@@ -311,9 +247,12 @@ export class IntermediateCodeOptimizer {
 
   private simplifyAssignment(
     assignment: AssignmentInstruction,
-  ): { instruction: string; rule: string } | null {
+  ): { instruction: string; rule: string } {
     if (assignment.target === assignment.value) {
-      return null;
+      return {
+        instruction: `${assignment.target} := ${assignment.value}`,
+        rule: "Sem alteração",
+      };
     }
 
     const unary = this.parseUnaryExpression(assignment.value);
@@ -464,20 +403,6 @@ export class IntermediateCodeOptimizer {
   private clearKnownValues(knownValues: KnownValues): void {
     knownValues.constants.clear();
     knownValues.copies.clear();
-  }
-
-  private evaluateCondition(condition: string): string | null {
-    if (condition === "true" || condition === "false") {
-      return condition;
-    }
-
-    const binary = this.parseBinaryExpression(condition);
-    if (!binary) return null;
-
-    if (binary.left === binary.right && binary.operator === "==") return "true";
-    if (binary.left === binary.right && binary.operator === "!=") return "false";
-
-    return this.evaluateBinary(binary.left, binary.operator, binary.right);
   }
 
   private evaluateUnary(operator: string, operand: string): string | null {
