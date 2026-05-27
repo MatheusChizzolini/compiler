@@ -118,6 +118,33 @@ export class IntermediateCodeOptimizer {
         continue;
       }
 
+      const conditionalJump = this.parseConditionalJump(instruction);
+      if (conditionalJump) {
+        const evaluatedCondition = this.evaluateCondition(
+          conditionalJump.condition,
+        );
+
+        if (evaluatedCondition === "true") {
+          const updatedInstruction = `goto ${conditionalJump.label}`;
+          this.addOptimization(
+            "Simplificacao de salto condicional",
+            instruction,
+            updatedInstruction,
+          );
+          optimized.push(updatedInstruction);
+          continue;
+        }
+
+        if (evaluatedCondition === "false") {
+          this.addOptimization(
+            "Simplificacao de salto condicional",
+            instruction,
+            null,
+          );
+          continue;
+        }
+      }
+
       optimized.push(instruction);
     }
 
@@ -403,6 +430,17 @@ export class IntermediateCodeOptimizer {
   private clearKnownValues(knownValues: KnownValues): void {
     knownValues.constants.clear();
     knownValues.copies.clear();
+  }
+
+  private evaluateCondition(condition: string): string | null {
+    if (condition === "true" || condition === "false") {
+      return condition;
+    }
+
+    const binary = this.parseBinaryExpression(condition);
+    if (!binary) return null;
+
+    return this.evaluateBinary(binary.left, binary.operator, binary.right);
   }
 
   private evaluateUnary(operator: string, operand: string): string | null {

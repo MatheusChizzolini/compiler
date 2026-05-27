@@ -1,0 +1,18 @@
+int a = 2;
+int b = 3;
+bool executar = true;
+int saida = 0;
+
+if (executar) {
+  int copia = a;
+  int neutro = copia + 0;
+  int primeira = a + b;
+  int segunda = b + a;
+  saida = segunda;
+} else {
+  saida = 99;
+}
+
+while (saida < 6) {
+  saida = saida + 1;
+}
